@@ -1,0 +1,130 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senhaHash String   @map("senha_hash")
+  avatarUrl String?  @map("avatar_url")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  grupos   Grupo[]       @relation("GrupoCriador")
+  membros  MembroGrupo[]
+  palpites Palpite[]
+
+  @@map("usuario")
+}
+
+model EdicaoCampeonato {
+  id       String   @id @default(uuid())
+  apiId    String   @unique @map("api_id")
+  nome     String
+  ano      Int
+  inicioEm DateTime @map("inicio_em")
+  fimEm    DateTime @map("fim_em")
+
+  jogos  Jogo[]
+  grupos Grupo[]
+
+  @@map("edicao_campeonato")
+}
+
+model Time {
+  id          String  @id @default(uuid())
+  apiId       String  @unique @map("api_id")
+  nome        String
+  nomeCurto   String? @map("nome_curto")
+  sigla       String?
+  bandeiraUrl String? @map("bandeira_url")
+  grupoFase   String? @map("grupo_fase")
+
+  jogosCasa      Jogo[] @relation("TimeCasa")
+  jogosVisitante Jogo[] @relation("TimeVisitante")
+
+  @@map("time")
+}
+
+model Jogo {
+  id              String   @id @default(uuid())
+  apiId           String   @unique @map("api_id")
+  edicaoId        String   @map("edicao_id")
+  timeCasaId      String?  @map("time_casa_id")
+  timeVisitanteId String?  @map("time_visitante_id")
+  fase            String
+  grupoFase       String?  @map("grupo_fase")
+  rodada          Int?
+  golsCasa        Int?     @map("gols_casa")
+  golsVisitante   Int?     @map("gols_visitante")
+  status          String   @default("agendado")
+  inicioEm        DateTime @map("inicio_em")
+
+  edicao        EdicaoCampeonato @relation(fields: [edicaoId], references: [id])
+  timeCasa      Time?            @relation("TimeCasa", fields: [timeCasaId], references: [id])
+  timeVisitante Time?            @relation("TimeVisitante", fields: [timeVisitanteId], references: [id])
+  palpites      Palpite[]
+
+  @@map("jogo")
+}
+
+model Grupo {
+  id            String   @id @default(uuid())
+  edicaoId      String   @map("edicao_id")
+  criadoPorId   String   @map("criado_por_id")
+  nome          String
+  codigoConvite String   @unique @map("codigo_convite")
+  criadoEm      DateTime @default(now()) @map("criado_em")
+
+  edicao    EdicaoCampeonato @relation(fields: [edicaoId], references: [id])
+  criadoPor Usuario          @relation("GrupoCriador", fields: [criadoPorId], references: [id])
+  membros   MembroGrupo[]
+  palpites  Palpite[]
+
+  @@map("grupo")
+}
+
+model MembroGrupo {
+  id             String   @id @default(uuid())
+  grupoId        String   @map("grupo_id")
+  usuarioId      String   @map("usuario_id")
+  papel          String   @default("membro") // ✅ fica aqui
+  status         String   @default("aprovado") // ✅ "pendente" | "aprovado"
+  pontuacaoTotal Int      @default(0) @map("pontuacao_total")
+  entrouEm       DateTime @default(now()) @map("entrou_em")
+
+  grupo   Grupo   @relation(fields: [grupoId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@unique([grupoId, usuarioId])
+  @@map("membro_grupo")
+}
+
+model Palpite {
+  id            String   @id @default(uuid())
+  usuarioId     String   @map("usuario_id")
+  jogoId        String   @map("jogo_id")
+  grupoId       String   @map("grupo_id")
+  golsCasa      Int      @map("gols_casa")
+  golsVisitante Int      @map("gols_visitante")
+  pontosGanhos  Int      @default(0) @map("pontos_ganhos")
+  criadoEm      DateTime @default(now()) @map("criado_em")
+  atualizadoEm  DateTime @updatedAt @map("atualizado_em")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  jogo    Jogo    @relation(fields: [jogoId], references: [id])
+  grupo   Grupo   @relation(fields: [grupoId], references: [id])
+
+  @@unique([usuarioId, jogoId, grupoId])
+  @@map("palpite")
+}
