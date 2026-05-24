@@ -10,8 +10,8 @@ generator client {
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
-
 model Usuario {
   id        String   @id @default(uuid())
   nome      String
