@@ -4,7 +4,6 @@ import Login       from './pages/Login'
 import Registro    from './pages/Registro'
 import Inicio      from './pages/Inicio'
 import Grupos      from './pages/Grupos'
-import GrupoDetalhe from './pages/GrupoDetalhe'
 import Perfil      from './pages/Perfil'
 import Navbar      from './components/Navbar'
 

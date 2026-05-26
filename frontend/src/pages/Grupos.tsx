@@ -12,6 +12,8 @@ interface Grupo {
   pontuacao:     number
   papel:         string
   status:        string
+    edicaoId:      string  // ✅ adicione isso
+
 }
 
 interface Edicao {
@@ -21,7 +23,6 @@ interface Edicao {
 }
 
 export default function Grupos() {
-  const { usuario }   = useAuth()
   const queryClient   = useQueryClient()
 
   const [grupoSelecionado, setGrupoSelecionado] = useState<Grupo | null>(null)
