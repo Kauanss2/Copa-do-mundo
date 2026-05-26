@@ -10,6 +10,11 @@ const adapter = new PrismaMariaDb({
   connectionLimit: 5,
 })
 
+console.log('DB HOST:', process.env.DATABASE_HOST)
+console.log('DB PORT:', process.env.DATABASE_PORT)
+console.log('DB USER:', process.env.DATABASE_USER)
+console.log('DB NAME:', process.env.DATABASE_NAME)
+
 const prisma = new PrismaClient({ adapter })
 
 export { prisma }
