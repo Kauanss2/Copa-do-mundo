@@ -1,9 +1,15 @@
+import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 import { PrismaClient } from '../generated/prisma/client.js'
-import { createPool } from 'mysql2'
 
-const pool = createPool(process.env.DATABASE_URL!)
+const adapter = new PrismaMariaDb({
+  host:            process.env.DATABASE_HOST,
+  port:            Number(process.env.DATABASE_PORT) || 3306,
+  user:            process.env.DATABASE_USER,
+  password:        process.env.DATABASE_PASSWORD,
+  database:        process.env.DATABASE_NAME,
+  connectionLimit: 5,
+})
 
-console.log('Conectando ao banco de dados...')
-const prisma = new PrismaClient({ adapter: pool as any })
+const prisma = new PrismaClient({ adapter })
 
-export { prisma } 
+export { prisma }
