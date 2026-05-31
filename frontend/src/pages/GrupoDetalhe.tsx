@@ -23,7 +23,7 @@ interface Membro {
 }
 
 type Aba    = 'palpites' | 'ranking' | 'equipes' | 'membros'
-type SubAba = 'futuras' | 'aovivo' | 'encerradas'
+type SubAba = 'meuspalpites' | 'futuras' | 'aovivo' | 'encerradas'
 
 // ─── GrupoDetalhe ─────────────────────────────────────────────────────────────
 
@@ -167,9 +167,10 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
   }
 
   const jogosFiltrados = (jogos as any[]).filter(j => {
+    if (subAba === 'meuspalpites') return !!getMeuPalpite(j.id)
     if (subAba === 'aovivo')     return j.status === 'em_andamento'
-    if (subAba === 'encerradas') return j.status === 'encerrado'
-    if (subAba === 'futuras')    return j.status === 'agendado' && j.timeCasaId && j.timeVisitanteId
+    if (subAba === 'encerradas') return j.status === 'encerrado' || (j.status === 'agendado' && new Date(j.inicioEm).getTime() <= Date.now())
+    if (subAba === 'futuras')    return j.status === 'agendado' && j.timeCasaId && j.timeVisitanteId && new Date(j.inicioEm).getTime() > Date.now()
     return false
   })
 
@@ -224,10 +225,21 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
     setEditando(prev => ({ ...prev, [jogoId]: false }))
   }
 
+  function agruparPorData(jogos: any[]) {
+    const grupos: Record<string, any[]> = {}
+    jogos.forEach(jogo => {
+      const data = new Date(jogo.inicioEm).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+      if (!grupos[data]) grupos[data] = []
+      grupos[data].push(jogo)
+    })
+    return Object.entries(grupos).sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
+  }
+
   const subAbas: { key: SubAba; label: string; icon: string }[] = [
     { key: 'futuras',    label: 'Futuras',    icon: '📅' },
     { key: 'aovivo',     label: 'Ao Vivo',    icon: '🔴' },
     { key: 'encerradas', label: 'Encerradas', icon: '✅' },
+    { key: 'meuspalpites', label: 'Meus Palpites', icon: '⭐' },
   ]
 
   const inputStyle: React.CSSProperties = {
@@ -266,131 +278,138 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
       {jogosFiltrados.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: '#606070' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>
-            {subAba === 'aovivo' ? '🔴' : subAba === 'encerradas' ? '✅' : '📅'}
+            {subAba === 'aovivo' ? '🔴' : subAba === 'encerradas' ? '✅' : subAba === 'meuspalpites' ? '⭐' : '📅'}
           </div>
-          Nenhum jogo {subAba === 'aovivo' ? 'ao vivo' : subAba === 'encerradas' ? 'encerrado' : 'disponível'} no momento
+          Nenhum jogo {subAba === 'aovivo' ? 'ao vivo' : subAba === 'encerradas' ? 'encerrado' : subAba === 'meuspalpites' ? 'palpitado' : 'disponível'} no momento
         </div>
       )}
 
-      {jogosFiltrados.map((j: any) => {
-        const meuPalpite = getMeuPalpite(j.id)
-        const modoEdicao = !!editando[j.id]
-        const pode       = podeApostar(j.inicioEm)
-        const carregando = !!loading[j.id]
-        const d = modoEdicao
-          ? getDraft(j.id, { casa: meuPalpite?.golsCasa ?? 0, visitante: meuPalpite?.golsVisitante ?? 0 })
-          : getDraft(j.id)
-        const modoInput = (!meuPalpite && subAba === 'futuras' && pode) || modoEdicao
+      {agruparPorData(jogosFiltrados).map(([data, jogosDoDia]) => (
+        <div key={data}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#FFD600', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, marginTop: 20 }}>
+            📅 {data}
+          </div>
+          {jogosDoDia.map((j: any) => {
+            const meuPalpite = getMeuPalpite(j.id)
+            const modoEdicao = !!editando[j.id]
+            const pode       = podeApostar(j.inicioEm)
+            const carregando = !!loading[j.id]
+            const d = modoEdicao
+              ? getDraft(j.id, { casa: meuPalpite?.golsCasa ?? 0, visitante: meuPalpite?.golsVisitante ?? 0 })
+              : getDraft(j.id)
+            const modoInput = (!meuPalpite && subAba === 'futuras' && pode) || modoEdicao
 
-        return (
-          <div key={j.id} style={{
-            background: '#13131a',
-            border: `1px solid ${modoInput ? 'rgba(0,200,83,0.25)' : 'rgba(255,255,255,0.08)'}`,
-            borderRadius: 16, padding: '16px 14px', marginBottom: 10,
-            animation: 'fadeIn 0.25s ease',
-            transition: 'border-color 0.2s',
-          }}>
-            {/* Data + status */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <span style={{ fontSize: 11, color: '#606070' }}>
-                {new Date(j.inicioEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-              </span>
-              <StatusBadge status={j.status} />
-            </div>
+            return (
+              <div key={j.id} style={{
+                background: '#13131a',
+                border: `1px solid ${modoInput ? 'rgba(0,200,83,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: 16, padding: '16px 14px', marginBottom: 10,
+                animation: 'fadeIn 0.25s ease',
+                transition: 'border-color 0.2s',
+              }}>
+                {/* Data + status */}
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <span style={{ fontSize: 11, color: '#606070' }}>
+                    {new Date(j.inicioEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <StatusBadge status={j.status} inicioEm={j.inicioEm} />
+                </div>
 
-            {/* Times */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-              {/* Casa */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                {j.timeCasa?.bandeiraUrl
-                  ? <img src={j.timeCasa.bandeiraUrl} style={{ width: 40, height: 40, objectFit: 'contain' }} onError={e => (e.currentTarget.style.display = 'none')} />
-                  : <span style={{ fontSize: 32 }}>🏳️</span>}
-                <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center' }}>{j.timeCasa?.sigla || '?'}</span>
-                {modoInput ? (
-                  <input type="number" min={0} max={20} value={d.casa}
-                    onChange={e => setGol(j.id, 'casa', +e.target.value)} style={inputStyle} />
-                ) : meuPalpite ? (
-                  <div style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 26, color: '#00C853' }}>{meuPalpite.golsCasa}</div>
-                ) : null}
-              </div>
-
-              {/* Centro */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, paddingBottom: modoInput || meuPalpite ? 8 : 0 }}>
-                {j.status !== 'agendado' && (
-                  <div style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 22, letterSpacing: 2, color: '#f0f0f0' }}>
-                    {j.golsCasa ?? 0} : {j.golsVisitante ?? 0}
+                {/* Times */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+                  {/* Casa */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    {j.timeCasa?.bandeiraUrl
+                      ? <img src={j.timeCasa.bandeiraUrl} style={{ width: 40, height: 40, objectFit: 'contain' }} onError={e => (e.currentTarget.style.display = 'none')} />
+                      : <span style={{ fontSize: 32 }}>🏳️</span>}
+                    <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center' }}>{j.timeCasa?.sigla || '?'}</span>
+                    {modoInput ? (
+                      <input type="number" min={0} max={20} value={d.casa}
+                        onChange={e => setGol(j.id, 'casa', +e.target.value)} style={inputStyle} />
+                    ) : meuPalpite ? (
+                      <div style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 26, color: '#00C853' }}>{meuPalpite.golsCasa}</div>
+                    ) : null}
                   </div>
-                )}
-                <span style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 22, color: '#404050', lineHeight: 1 }}>
-                  {j.status === 'agendado' ? 'x' : '|'}
-                </span>
-              </div>
 
-              {/* Visitante */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                {j.timeVisitante?.bandeiraUrl
-                  ? <img src={j.timeVisitante.bandeiraUrl} style={{ width: 40, height: 40, objectFit: 'contain' }} onError={e => (e.currentTarget.style.display = 'none')} />
-                  : <span style={{ fontSize: 32 }}>🏳️</span>}
-                <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center' }}>{j.timeVisitante?.sigla || '?'}</span>
-                {modoInput ? (
-                  <input type="number" min={0} max={20} value={d.visitante}
-                    onChange={e => setGol(j.id, 'visitante', +e.target.value)} style={inputStyle} />
-                ) : meuPalpite ? (
-                  <div style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 26, color: '#00C853' }}>{meuPalpite.golsVisitante}</div>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Rodapé */}
-            <div style={{ marginTop: 14 }}>
-              {!meuPalpite && subAba === 'futuras' && pode && (
-                <button onClick={() => apostar(j.id)} disabled={carregando}
-                  style={{ width: '100%', padding: '11px', background: carregando ? '#333' : '#00C853', border: 'none', borderRadius: 10, color: '#000', fontWeight: 700, fontSize: 14, cursor: carregando ? 'not-allowed' : 'pointer' }}>
-                  {carregando ? 'Enviando...' : '⚽ Apostar'}
-                </button>
-              )}
-
-              {meuPalpite && !modoEdicao && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 11, color: '#606070' }}>
-                    Seu palpite
-                    {meuPalpite.pontosGanhos > 0 && (
-                      <span style={{ color: '#FFD600', marginLeft: 8 }}>+{meuPalpite.pontosGanhos} pts</span>
+                  {/* Centro */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, paddingBottom: modoInput || meuPalpite ? 8 : 0 }}>
+                    {j.status !== 'agendado' && (
+                      <div style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 22, letterSpacing: 2, color: '#f0f0f0' }}>
+                        {j.golsCasa ?? 0} : {j.golsVisitante ?? 0}
+                      </div>
                     )}
+                    <span style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 22, color: '#404050', lineHeight: 1 }}>
+                      {j.status === 'agendado' ? 'x' : '|'}
+                    </span>
                   </div>
-                  {pode && subAba === 'futuras' && (
-                    <button onClick={() => iniciarEdicao(j.id, meuPalpite)}
-                      style={{ padding: '6px 14px', background: 'transparent', border: '1px solid rgba(0,200,83,0.4)', borderRadius: 8, color: '#00C853', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                      Editar
+
+                  {/* Visitante */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    {j.timeVisitante?.bandeiraUrl
+                      ? <img src={j.timeVisitante.bandeiraUrl} style={{ width: 40, height: 40, objectFit: 'contain' }} onError={e => (e.currentTarget.style.display = 'none')} />
+                      : <span style={{ fontSize: 32 }}>🏳️</span>}
+                    <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center' }}>{j.timeVisitante?.sigla || '?'}</span>
+                    {modoInput ? (
+                      <input type="number" min={0} max={20} value={d.visitante}
+                        onChange={e => setGol(j.id, 'visitante', +e.target.value)} style={inputStyle} />
+                    ) : meuPalpite ? (
+                      <div style={{ fontFamily: '"Bebas Neue", cursive', fontSize: 26, color: '#00C853' }}>{meuPalpite.golsVisitante}</div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Rodapé */}
+                <div style={{ marginTop: 14 }}>
+                  {!meuPalpite && subAba === 'futuras' && pode && (
+                    <button onClick={() => apostar(j.id)} disabled={carregando}
+                      style={{ width: '100%', padding: '11px', background: carregando ? '#333' : '#00C853', border: 'none', borderRadius: 10, color: '#000', fontWeight: 700, fontSize: 14, cursor: carregando ? 'not-allowed' : 'pointer' }}>
+                      {carregando ? 'Enviando...' : '⚽ Apostar'}
                     </button>
                   )}
+
+                  {meuPalpite && !modoEdicao && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: 11, color: '#606070' }}>
+                        Seu palpite
+                        {meuPalpite.pontosGanhos > 0 && (
+                          <span style={{ color: '#FFD600', marginLeft: 8 }}>+{meuPalpite.pontosGanhos} pts</span>
+                        )}
+                      </div>
+                      {pode && (j.status === 'agendado' || subAba === 'meuspalpites') && (
+                        <button onClick={() => iniciarEdicao(j.id, meuPalpite)}
+                          style={{ padding: '6px 14px', background: 'transparent', border: '1px solid rgba(0,200,83,0.4)', borderRadius: 8, color: '#00C853', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                          Editar
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {meuPalpite && modoEdicao && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => salvar(j.id)} disabled={carregando}
+                        style={{ flex: 1, padding: '11px', background: carregando ? '#333' : '#00C853', border: 'none', borderRadius: 10, color: '#000', fontWeight: 700, fontSize: 14, cursor: carregando ? 'not-allowed' : 'pointer' }}>
+                        {carregando ? 'Salvando...' : '✓ Salvar'}
+                      </button>
+                      <button onClick={() => cancelarEdicao(j.id)}
+                        style={{ padding: '11px 16px', background: '#1c1c26', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#606070', fontSize: 13, cursor: 'pointer' }}>
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {!meuPalpite && subAba === 'futuras' && !pode && (
+                    <div style={{ fontSize: 12, color: '#606070', textAlign: 'center' }}>🔒 Prazo encerrado</div>
+                  )}
+
+                  {!meuPalpite && subAba === 'encerradas' && (
+                    <div style={{ fontSize: 12, color: '#606070', textAlign: 'center' }}>Você não apostou neste jogo</div>
+                  )}
                 </div>
-              )}
-
-              {meuPalpite && modoEdicao && (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => salvar(j.id)} disabled={carregando}
-                    style={{ flex: 1, padding: '11px', background: carregando ? '#333' : '#00C853', border: 'none', borderRadius: 10, color: '#000', fontWeight: 700, fontSize: 14, cursor: carregando ? 'not-allowed' : 'pointer' }}>
-                    {carregando ? 'Salvando...' : '✓ Salvar'}
-                  </button>
-                  <button onClick={() => cancelarEdicao(j.id)}
-                    style={{ padding: '11px 16px', background: '#1c1c26', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#606070', fontSize: 13, cursor: 'pointer' }}>
-                    ✕
-                  </button>
-                </div>
-              )}
-
-              {!meuPalpite && subAba === 'futuras' && !pode && (
-                <div style={{ fontSize: 12, color: '#606070', textAlign: 'center' }}>🔒 Prazo encerrado</div>
-              )}
-
-              {!meuPalpite && subAba === 'encerradas' && (
-                <div style={{ fontSize: 12, color: '#606070', textAlign: 'center' }}>Você não apostou neste jogo</div>
-              )}
-            </div>
-          </div>
-        )
-      })}
+              </div>
+            )
+          })}
+        </div>
+      ))}
     </div>
   )
 }
@@ -577,13 +596,17 @@ function AbaMembros({ grupoId }: { grupoId: string }) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, inicioEm }: { status: string; inicioEm?: string }) {
+  const passouData = inicioEm && new Date(inicioEm).getTime() <= Date.now()
   const cfg: Record<string, { bg: string; color: string; label: string }> = {
     em_andamento: { bg: 'rgba(0,200,83,0.15)',    color: '#00C853', label: '● AO VIVO'  },
     encerrado:    { bg: 'rgba(144,144,160,0.15)', color: '#9090a0', label: 'ENCERRADO'  },
     agendado:     { bg: 'rgba(255,214,0,0.15)',   color: '#FFD600', label: 'FUTURO'      },
   }
-  const s = cfg[status] ?? cfg.agendado
+  let s = cfg[status] ?? cfg.agendado
+  if (status === 'agendado' && passouData) {
+    s = cfg.encerrado
+  }
   return (
     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: s.bg, color: s.color }}>
       {s.label}
