@@ -36,6 +36,39 @@ app.get('/edicoes', async (req, res) => {
   return res.json(edicoes)
 })
 
+import { sincronizarJogos } from './src/script/sync-jogos'
+
+// Rota protegida por chave secreta — só o Railway chama
+app.post('/sync/jogos', async (req, res) => {
+  const chave = req.headers['x-sync-key']
+  if (chave !== process.env.SYNC_SECRET) {
+    return res.status(401).json({ error: 'Não autorizado' })
+  }
+
+  try {
+    await sincronizarJogos()
+    return res.json({ ok: true, hora: new Date().toISOString() })
+  } catch (e) {
+    console.error(e)
+    return res.status(500).json({ error: 'Erro ao sincronizar' })
+  }
+})
+
+import { calcularTodasPontuacoes } from './src/services/pontuacao.service'
+
+app.post('/sync/pontuacao', async (req, res) => {
+  const chave = req.headers['x-sync-key']
+  if (chave !== process.env.SYNC_SECRET) {
+    return res.status(401).json({ error: 'Não autorizado' })
+  }
+  try {
+    await calcularTodasPontuacoes()
+    return res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    return res.status(500).json({ error: 'Erro ao calcular pontuação' })
+  }
+})
 
 
 app.listen(PORT, () => {
