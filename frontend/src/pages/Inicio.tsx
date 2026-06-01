@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import React from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
+import logo from '../assets/logo.png'
 
 interface Grupo {
   id:           string
@@ -14,6 +16,7 @@ interface Grupo {
 export default function Inicio() {
   const { usuario } = useAuth()
   const navigate    = useNavigate()
+  const [showRegras, setShowRegras] = React.useState(false)
 
   const { data: grupos = [], isLoading } = useQuery<Grupo[]>({
     queryKey: ['grupos'],
@@ -33,6 +36,11 @@ export default function Inicio() {
           100% { background-position: 0% 50%; }
         }
       `}</style>
+
+      {/* ── Logo ── */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32, animation: 'fadeIn 0.4s ease' }}>
+        <img src={logo} alt="Logo" style={{ width: 140, height: 140, objectFit: 'contain' }} />
+      </div>
 
       {/* ── Saudação ── */}
       <div style={{ marginBottom: 36, animation: 'fadeIn 0.4s ease' }}>
@@ -83,6 +91,59 @@ export default function Inicio() {
             <div style={{ fontSize: 12, color: '#606070' }}>{item.sub}</div>
           </button>
         ))}
+      </div>
+
+      {/* ── Regras ── */}
+      <div style={{ marginBottom: 32, animation: 'fadeIn 0.4s ease' }}>
+        <button
+          onClick={() => setShowRegras(!showRegras)}
+          style={{
+            width: '100%', background: '#13131a', border: '1px solid rgba(0,200,83,0.3)',
+            borderRadius: 16, padding: '16px 18px', cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0,200,83,0.6)'
+            ;(e.currentTarget as HTMLButtonElement).style.background = '#161620'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0,200,83,0.3)'
+            ;(e.currentTarget as HTMLButtonElement).style.background = '#13131a'
+          }}
+        >
+          <span style={{ fontSize: 16, fontWeight: 600 }}>📋 Como funciona</span>
+          <span style={{ fontSize: 20, transform: showRegras ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.3s' }}>⌄</span>
+        </button>
+
+        {showRegras && (
+          <div style={{ marginTop: 12, padding: '20px 18px', background: 'rgba(0,200,83,0.05)', border: '1px solid rgba(0,200,83,0.2)', borderRadius: 12, animation: 'fadeIn 0.3s ease' }}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#00C853', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>🎯 Pontuação</div>
+              <div style={{ fontSize: 13, color: '#c0c0d0', lineHeight: 1.6 }}>
+                <div style={{ marginBottom: 6 }}>✅ Placar exato → <span style={{ color: '#FFD600', fontWeight: 600 }}>30 pontos</span></div>
+                <div style={{ marginBottom: 6 }}>🟡 Acertou vencedor/empate → <span style={{ color: '#FFD600', fontWeight: 600 }}>15 pontos</span></div>
+                <div>❌ Errou o resultado → <span style={{ color: '#888', fontWeight: 600 }}>0 pontos</span></div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#00C853', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>🏅 Ranking</div>
+              <div style={{ fontSize: 13, color: '#c0c0d0' }}>Atualizado automaticamente <span style={{ color: '#FFD600', fontWeight: 600 }}>3 vezes por dia</span></div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#00C853', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>📌 Regras Gerais</div>
+              <div style={{ fontSize: 13, color: '#c0c0d0', lineHeight: 1.7 }}>
+                <div style={{ marginBottom: 4 }}>• Altere palpites até <span style={{ color: '#FFD600' }}>2 horas</span> antes do jogo</div>
+                <div style={{ marginBottom: 4 }}>• Cada palpite vale apenas no grupo</div>
+                <div style={{ marginBottom: 4 }}>• Participe de vários grupos simultane</div>
+                <div style={{ marginBottom: 4 }}>• Jogos cancelados não geram pontos</div>
+                <div style={{ marginBottom: 4 }}>• Considera tempo regulamentar + prorrogação</div>
+                <div>• Pênaltis não são considerados</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Meus grupos ── */}
