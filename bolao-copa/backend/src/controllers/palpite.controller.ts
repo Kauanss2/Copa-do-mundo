@@ -1,6 +1,7 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middlewares/auth.middleware'
 import * as palpiteService from '../services/palpite.service'
+import ExcelJS from 'exceljs'
 
 function validarBody(body: {
   jogoId?:        string
@@ -92,5 +93,59 @@ export async function listarMeusPalpitesController(req: AuthRequest, res: Respon
 
     } catch (error) {
         return handleError(error, res)
+    }
+}
+
+export async function exportarPalpitesExcelController(req: AuthRequest, res: Response) {
+    try {
+        const { grupoId } = req.params
+        if (!grupoId) return res.status(400).json({ error: 'grupoId é obrigatório.' })
+
+        const palpites = await palpiteService.exportarPalpitesGrupo(grupoId)
+
+        const workbook = new ExcelJS.Workbook()
+        const worksheet = workbook.addWorksheet('Palpites')
+
+        worksheet.columns = [
+            { header: 'Participante', key: 'usuario', width: 20 },
+            { header: 'Email', key: 'email', width: 25 },
+            { header: 'Data', key: 'dataJogo', width: 12 },
+            { header: 'Time Casa', key: 'timeCasa', width: 18 },
+            { header: 'Time Visitante', key: 'timeVisitante', width: 18 },
+            { header: 'Palpite (Casa)', key: 'palpiteCasa', width: 14 },
+            { header: 'Palpite (Visitante)', key: 'palpiteVisitante', width: 16 },
+            { header: 'Resultado (Casa)', key: 'resultadoCasa', width: 15 },
+            { header: 'Resultado (Visitante)', key: 'resultadoVisitante', width: 18 },
+            { header: 'Status', key: 'status', width: 12 },
+            { header: 'Pontos', key: 'pontos', width: 10 },
+        ]
+
+        worksheet.headerRow = 1
+        const headerRow = worksheet.getRow(1)
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00C853' } }
+
+        palpites.forEach(p => {
+            const row = worksheet.addRow(p)
+            if (p.status === 'Finalizado') {
+                if (p.palpiteCasa === p.resultadoCasa && p.palpiteVisitante === p.resultadoVisitante) {
+                    row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } }
+                } else if (p.pontos > 0) {
+                    row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF99' } }
+                } else {
+                    row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCCCC' } }
+                }
+            }
+        })
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        res.setHeader('Content-Disposition', `attachment; filename="palpites-grupo-${grupoId}.xlsx"`)
+
+        await workbook.xlsx.write(res as any)
+        return res.end()
+
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json({ error: 'Erro ao gerar Excel' })
     }
 }

@@ -39,3 +39,19 @@ export async function findMeusPalpites(usuarioId: string, grupoId: string) {
         orderBy: { criadoEm: 'desc' }
     })
 }
+
+export async function findPalpitesGrupo(grupoId: string) {
+    return prisma.palpite.findMany({
+        where: { grupoId },
+        include: {
+            usuario: { select: { nome: true, email: true } },
+            jogo: {
+                include: {
+                    timeCasa: { select: { nome: true } },
+                    timeVisitante: { select: { nome: true } }
+                }
+            }
+        },
+        orderBy: [{ jogo: { inicioEm: 'asc' } }, { usuario: { nome: 'asc' } }]
+    })
+}

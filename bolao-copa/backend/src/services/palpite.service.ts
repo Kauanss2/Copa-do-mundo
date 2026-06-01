@@ -79,3 +79,21 @@ export async function editarPalpite({
 export async function listarMeusPalpites(usuarioId: string, grupoId: string) {
     return palpiteRepository.findMeusPalpites(usuarioId, grupoId)
 }
+
+export async function exportarPalpitesGrupo(grupoId: string) {
+    const palpites = await palpiteRepository.findPalpitesGrupo(grupoId)
+
+    return palpites.map(p => ({
+        usuario: p.usuario.nome,
+        email: p.usuario.email,
+        timeCasa: p.jogo.timeCasa?.nome || 'N/A',
+        timeVisitante: p.jogo.timeVisitante?.nome || 'N/A',
+        palpiteCasa: p.golsCasa,
+        palpiteVisitante: p.golsVisitante,
+        resultadoCasa: p.jogo.golsCasa !== null ? p.jogo.golsCasa : '-',
+        resultadoVisitante: p.jogo.golsVisitante !== null ? p.jogo.golsVisitante : '-',
+        status: p.jogo.golsCasa === null ? 'Pendente' : 'Finalizado',
+        pontos: p.pontosGanhos,
+        dataJogo: new Date(p.jogo.inicioEm).toLocaleDateString('pt-BR'),
+    }))
+}

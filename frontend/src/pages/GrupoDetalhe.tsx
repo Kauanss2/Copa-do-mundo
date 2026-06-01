@@ -147,6 +147,7 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
   const [draft, setDraft]     = useState<Record<string, { casa: number; visitante: number }>>({})
   const [editando, setEditando] = useState<Record<string, boolean>>({})
   const [loading, setLoading]  = useState<Record<string, boolean>>({})
+  const [exportando, setExportando] = useState(false)
 
   // Jogos filtrados pela edição do campeonato do grupo
   const { data: jogos = [] } = useQuery({
@@ -225,6 +226,26 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
     setEditando(prev => ({ ...prev, [jogoId]: false }))
   }
 
+  async function exportarExcel() {
+    setExportando(true)
+    try {
+      const response = await api.get(`/palpites/grupo/${grupoId}/export-excel`, {
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `palpites-grupo-${grupoId}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.parentNode?.removeChild(link)
+    } catch (e: any) {
+      alert('Erro ao exportar arquivo: ' + (e.response?.data?.error || 'Tente novamente'))
+    } finally {
+      setExportando(false)
+    }
+  }
+
   function agruparPorData(jogos: any[]) {
     const grupos: Record<string, any[]> = {}
     jogos.forEach(jogo => {
@@ -274,6 +295,31 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
           </button>
         ))}
       </div>
+
+      {/* Botão Exportar Excel */}
+      <button
+        onClick={exportarExcel}
+        disabled={exportando}
+        style={{
+          width: '100%', padding: '10px', marginBottom: 20, borderRadius: 10,
+          background: exportando ? '#333' : 'rgba(0,200,83,0.1)',
+          border: '1px solid rgba(0,200,83,0.3)', color: '#00C853',
+          fontWeight: 600, fontSize: 13, cursor: exportando ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={e => {
+          if (!exportando) {
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,200,83,0.2)'
+          }
+        }}
+        onMouseLeave={e => {
+          if (!exportando) {
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,200,83,0.1)'
+          }
+        }}
+      >
+        {exportando ? '⏳ Gerando...' : '📊 Exportar Excel'}
+      </button>
 
       {jogosFiltrados.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: '#606070' }}>
