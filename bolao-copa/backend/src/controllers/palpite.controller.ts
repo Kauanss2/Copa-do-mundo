@@ -98,7 +98,7 @@ export async function listarMeusPalpitesController(req: AuthRequest, res: Respon
 
 export async function exportarPalpitesExcelController(req: AuthRequest, res: Response) {
     try {
-        const { grupoId } = req.params
+        const grupoId = Array.isArray(req.params.grupoId) ? req.params.grupoId[0] : req.params.grupoId
         if (!grupoId) return res.status(400).json({ error: 'grupoId é obrigatório.' })
 
         const palpites = await palpiteService.exportarPalpitesGrupo(grupoId)
@@ -120,7 +120,6 @@ export async function exportarPalpitesExcelController(req: AuthRequest, res: Res
             { header: 'Pontos', key: 'pontos', width: 10 },
         ]
 
-        worksheet.headerRow = 1
         const headerRow = worksheet.getRow(1)
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00C853' } }
