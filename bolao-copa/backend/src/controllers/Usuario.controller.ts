@@ -31,3 +31,31 @@ export async function getAllUsersController(req: Request, res: Response) {
         return res.status(500).json({ error: 'Erro interno do servidor.' })
     }
 }
+
+export async function resetPasswordController(req: Request, res: Response) {
+    try {
+        const token = req.headers['x-admin-token'] as string
+        const adminToken = process.env.ADMIN_RESET_TOKEN
+
+        if (!token || token !== adminToken) {
+            return res.status(401).json({ error: 'Token inválido ou ausente.' })
+        }
+
+        const { usuarioId, novaSenha } = req.body
+
+        if (!usuarioId || !novaSenha) {
+            return res.status(400).json({ error: 'usuarioId e novaSenha são obrigatórios.' })
+        }
+
+        if (novaSenha.length < 6) {
+            return res.status(400).json({ error: 'A senha deve ter no mínimo 6 caracteres.' })
+        }
+
+        const usuario = await usuarioService.resetarSenha(usuarioId, novaSenha)
+        return res.status(200).json(usuario)
+
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json({ error: 'Erro interno do servidor.' })
+    }
+}

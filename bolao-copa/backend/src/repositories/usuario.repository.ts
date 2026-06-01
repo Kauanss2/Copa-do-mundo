@@ -22,3 +22,10 @@ export async function findAllUsuarios() {
         }
     })
 }
+
+export async function updateSenhaUsuario(id: string, senhaHash: string) {
+    return prisma.usuario.update({
+        where: { id },
+        data: { senhaHash }
+    })
+}

@@ -31,3 +31,15 @@ export async function criarUsuario({ nome, email, password }: CriarUsuarioDTO) {
 export async function listarUsuarios() {
     return usuarioRepository.findAllUsuarios()
 }
+
+export async function resetarSenha(usuarioId: string, novaSenha: string) {
+    const senhaHash = await bcrypt.hash(novaSenha, 10)
+    const usuario = await usuarioRepository.updateSenhaUsuario(usuarioId, senhaHash)
+
+    return {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        mensagem: 'Senha atualizada com sucesso'
+    }
+}
