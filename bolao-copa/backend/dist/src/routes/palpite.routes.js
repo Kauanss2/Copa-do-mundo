@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const palpite_controller_1 = require("../controllers/palpite.controller");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authMiddleware);
+router.post('/', palpite_controller_1.criarPalpiteController);
+router.put('/', palpite_controller_1.editarPalpiteController);
+router.get('/', palpite_controller_1.listarMeusPalpitesController);
+router.get('/grupo/:grupoId/export-excel', palpite_controller_1.exportarPalpitesExcelController);
+exports.default = router;

@@ -8,14 +8,24 @@ interface PalpiteDTO {
     golsVisitante: number
 }
 
+const PRAZO_FASE_GRUPOS = new Date('2026-06-15T23:59:59.999')
+
 // Responsabilidade única: validar regras do jogo
 function validarJogo(jogo: {
     timeCasaId: string | null
     timeVisitanteId: string | null
     inicioEm: Date
+    fase: string | null
 }) {
     if (!jogo.timeCasaId || !jogo.timeVisitanteId) {
         throw new Error('TIMES_NAO_DEFINIDOS')
+    }
+
+    if (jogo.fase === 'grupos') {
+        if (Date.now() > PRAZO_FASE_GRUPOS.getTime()) {
+            throw new Error('FORA_DO_PRAZO')
+        }
+        return
     }
 
     const diffHoras = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60 * 60)

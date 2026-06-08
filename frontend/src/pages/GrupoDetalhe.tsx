@@ -163,8 +163,14 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
     enabled:  !!grupoId,
   })
 
-  function podeApostar(inicioEm: string) {
-    return (new Date(inicioEm).getTime() - Date.now()) > 2 * 60 * 60 * 1000
+  const PRAZO_FASE_GRUPOS = new Date('2026-06-15T23:59:59.999')
+
+  function podeApostar(jogo: any) {
+    if (jogo.fase === 'grupos') {
+      return Date.now() < PRAZO_FASE_GRUPOS.getTime()
+    }
+
+    return (new Date(jogo.inicioEm).getTime() - Date.now()) > 2 * 60 * 60 * 1000
   }
 
   const jogosFiltrados = (jogos as any[]).filter(j => {
@@ -296,6 +302,19 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
         ))}
       </div>
 
+      <div style={{
+        marginBottom: 16,
+        padding: '10px 12px',
+        borderRadius: 12,
+        background: 'rgba(255, 214, 0, 0.08)',
+        border: '1px solid rgba(255, 214, 0, 0.25)',
+        color: '#FFD600',
+        fontSize: 12,
+        lineHeight: 1.4,
+      }}>
+        ⚠️ Os palpites da fase de grupos só podem ser feitos até 15/06/2026.
+      </div>
+
       {/* Botão Exportar Excel */}
       <button
         onClick={exportarExcel}
@@ -338,7 +357,7 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
           {jogosDoDia.map((j: any) => {
             const meuPalpite = getMeuPalpite(j.id)
             const modoEdicao = !!editando[j.id]
-            const pode       = podeApostar(j.inicioEm)
+            const pode       = podeApostar(j)
             const carregando = !!loading[j.id]
             const d = modoEdicao
               ? getDraft(j.id, { casa: meuPalpite?.golsCasa ?? 0, visitante: meuPalpite?.golsVisitante ?? 0 })

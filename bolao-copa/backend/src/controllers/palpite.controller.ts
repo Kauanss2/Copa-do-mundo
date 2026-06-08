@@ -26,7 +26,7 @@ function handleError(error: unknown, res: Response) {
       GOLS_NEGATIVOS:        [400, 'Gols não podem ser negativos.'],
       JOGO_NAO_ENCONTRADO:   [404, 'Jogo não encontrado.'],
       TIMES_NAO_DEFINIDOS:   [400, 'Este jogo ainda não tem times definidos.'],
-      FORA_DO_PRAZO:         [400, 'Prazo encerrado. O jogo começa em menos de 2 horas.'],
+      FORA_DO_PRAZO:         [400, 'Prazo encerrado. Para a fase de grupos, os palpites fecham em 15/06/2026. Para outras fases, o limite é 2 horas antes do início.'],
       PALPITE_JA_EXISTE:     [409, 'Você já tem um palpite para este jogo neste grupo.'],
       PALPITE_NAO_ENCONTRADO:[404, 'Palpite não encontrado.'],
     }
