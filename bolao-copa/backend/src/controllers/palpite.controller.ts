@@ -108,7 +108,6 @@ export async function exportarPalpitesExcelController(req: AuthRequest, res: Res
 
         worksheet.columns = [
             { header: 'Participante', key: 'usuario', width: 20 },
-            { header: 'Email', key: 'email', width: 25 },
             { header: 'Data', key: 'dataJogo', width: 12 },
             { header: 'Time Casa', key: 'timeCasa', width: 18 },
             { header: 'Time Visitante', key: 'timeVisitante', width: 18 },

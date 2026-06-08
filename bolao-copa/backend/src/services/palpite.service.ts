@@ -95,7 +95,6 @@ export async function exportarPalpitesGrupo(grupoId: string) {
 
     return palpites.map(p => ({
         usuario: p.usuario.nome,
-        email: p.usuario.email,
         timeCasa: p.jogo.timeCasa?.nome || 'N/A',
         timeVisitante: p.jogo.timeVisitante?.nome || 'N/A',
         palpiteCasa: p.golsCasa,
