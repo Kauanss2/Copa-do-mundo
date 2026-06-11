@@ -165,14 +165,22 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
 
   const PRAZO_FASE_GRUPOS = new Date('2026-06-15T23:59:59.999')
 
-  function podeApostar(jogo: any) {
-    if (jogo.fase === 'grupos') {
-      return Date.now() < PRAZO_FASE_GRUPOS.getTime()
-    }
+function podeApostar(jogo: any) {
+  const agora = Date.now()
+  const inicioJogo = new Date(jogo.inicioEm).getTime()
 
-    return (new Date(jogo.inicioEm).getTime() - Date.now()) > 2 * 60 * 60 * 1000
+  const faltamMaisDeDuasHoras = inicioJogo - agora > 2 * 60 * 60 * 1000
+
+  if (!faltamMaisDeDuasHoras) {
+    return false
   }
 
+  if (jogo.fase === 'grupos') {
+    return agora < PRAZO_FASE_GRUPOS.getTime()
+  }
+
+  return true
+}
   const jogosFiltrados = (jogos as any[]).filter(j => {
     if (subAba === 'meuspalpites') return !!getMeuPalpite(j.id)
     if (subAba === 'aovivo')     return j.status === 'em_andamento'
