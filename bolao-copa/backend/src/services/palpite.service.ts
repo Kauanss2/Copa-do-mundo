@@ -21,15 +21,13 @@ function validarJogo(jogo: {
         throw new Error('TIMES_NAO_DEFINIDOS')
     }
 
-    if (jogo.fase === 'grupos') {
-        if (Date.now() > PRAZO_FASE_GRUPOS.getTime()) {
-            throw new Error('FORA_DO_PRAZO')
-        }
-        return
+    const diffHoras = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60 * 60)
+
+    if (diffHoras <= 2) {
+        throw new Error('FORA_DO_PRAZO')
     }
 
-    const diffHoras = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60 * 60)
-    if (diffHoras <= 2) {
+    if (jogo.fase === 'grupos' && Date.now() > PRAZO_FASE_GRUPOS.getTime()) {
         throw new Error('FORA_DO_PRAZO')
     }
 }
