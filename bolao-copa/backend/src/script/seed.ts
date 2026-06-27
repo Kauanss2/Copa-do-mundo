@@ -1,8 +1,6 @@
 import { prisma } from '../libs/prisma'
 import copa2026 from './copa2026.json'
 
-
-// Tipagem do JSON da API
 interface TimeAPI {
   id:        number | null
   name:      string
@@ -22,11 +20,6 @@ interface JogoAPI {
   awayTeam: TimeAPI
 }
 
-interface CopaData {
-  matches: JogoAPI[]
-}
-
-
 const FASE_MAP: Record<string, string> = {
   GROUP_STAGE:    'grupos',
   LAST_32:        'oitavas',
@@ -39,7 +32,7 @@ const FASE_MAP: Record<string, string> = {
 
 async function seed() {
 
-  // 1. Cria a edição da Copa 2026
+  // 1. Edição da Copa
   console.log('Criando edição da Copa 2026...')
   const edicao = await prisma.edicaoCampeonato.upsert({
     where:  { apiId: '2000' },
@@ -54,7 +47,7 @@ async function seed() {
   })
   console.log('✓ Edição criada')
 
-  // 2. Coleta times únicos do JSON
+  // 2. Coleta times únicos
   console.log('Inserindo times...')
   const timesMap = new Map<string, {
     apiId:       string
@@ -68,43 +61,47 @@ async function seed() {
   for (const jogo of copa2026.matches) {
     const { homeTeam, awayTeam, group } = jogo
 
-    if (homeTeam.id && !timesMap.has(String(homeTeam.id))) {
-      timesMap.set(String(homeTeam.id), {
-        apiId:       String(homeTeam.id),
-        nome:        homeTeam.name,
-        nomeCurto:   homeTeam.shortName ?? homeTeam.name,
-        sigla:       homeTeam.tla       ?? '',
-        bandeiraUrl: homeTeam.crest     ?? '',
-        grupoFase:   group ?? null,
-      })
-    }
+    // ✅ MUDANÇA 1: loop em vez de dois ifs duplicados
+    // ✅ MUDANÇA 2: atualiza grupoFase se o time já existe mas ainda estava null
+    for (const team of [homeTeam, awayTeam]) {
+      if (!team.id) continue
+      const key      = String(team.id)
+      const existing = timesMap.get(key)
 
-    if (awayTeam.id && !timesMap.has(String(awayTeam.id))) {
-      timesMap.set(String(awayTeam.id), {
-        apiId:       String(awayTeam.id),
-        nome:        awayTeam.name,
-        nomeCurto:   awayTeam.shortName ?? awayTeam.name,
-        sigla:       awayTeam.tla       ?? '',
-        bandeiraUrl: awayTeam.crest     ?? '',
-        grupoFase:   group ?? null,
-      })
+      if (!existing || (!existing.grupoFase && group)) {
+        timesMap.set(key, {
+          apiId:       key,
+          nome:        team.name,
+          nomeCurto:   team.shortName ?? team.name,
+          sigla:       team.tla       ?? '',
+          bandeiraUrl: team.crest     ?? '',
+          grupoFase:   group ?? existing?.grupoFase ?? null,
+        })
+      }
     }
   }
 
   for (const time of timesMap.values()) {
     await prisma.time.upsert({
       where:  { apiId: time.apiId },
-      update: {},
+      // ✅ MUDANÇA 3: update preenchido — antes era {} e nunca atualizava nada
+      update: {
+        nome:        time.nome,
+        nomeCurto:   time.nomeCurto,
+        sigla:       time.sigla,
+        bandeiraUrl: time.bandeiraUrl,
+        // grupoFase propositalmente fora: não faz sentido mudar após definido no banco
+      },
       create: time,
     })
   }
   console.log(`✓ ${timesMap.size} times inseridos`)
 
-  // 3. Monta mapa apiId -> uuid do banco
+  // 3. Mapa apiId → uuid do banco
   const todosOsTimes = await prisma.time.findMany()
   const timeIdMap    = new Map(todosOsTimes.map(t => [t.apiId, t.id]))
 
-  // 4. Insere todos os jogos
+  // 4. Jogos
   console.log('Inserindo jogos...')
   let total = 0
 
@@ -119,19 +116,34 @@ async function seed() {
 
     await prisma.jogo.upsert({
       where:  { apiId: String(m.id) },
-      update: {},
+      update: {
+        // ✅ MUDANÇA 4: spread condicional — só atualiza se o valor vier definido
+        // Evita sobrescrever timeCasaId/timeVisitanteId com null nas fases
+        // eliminatórias onde o time ainda não foi definido na API
+        ...(timeCasaId      && { timeCasaId }),
+        ...(timeVisitanteId && { timeVisitanteId }),
+
+        // ✅ MUDANÇA 5: status nunca regride
+        // Se o JSON ainda vem como SCHEDULED, não toca no status atual do banco
+        ...(m.status === 'FINISHED' && { status: 'finalizado'    }),
+        ...(m.status === 'IN_PLAY'  && { status: 'em_andamento'  }),
+
+        // Data e rodada podem mudar legitimamente (adiamentos, etc.)
+        inicioEm: new Date(m.utcDate),
+        ...(m.matchday !== null && { rodada: m.matchday }),
+      },
       create: {
-        apiId:            String(m.id),
-        edicaoId:         edicao.id,
+        apiId:         String(m.id),
+        edicaoId:      edicao.id,
         timeCasaId,
         timeVisitanteId,
-        fase:             FASE_MAP[m.stage] ?? m.stage,
-        grupoFase:        m.group    ?? null,
-        rodada:           m.matchday ?? null,
-        golsCasa:         null,
-        golsVisitante:    null,
-        status:           'agendado',
-        inicioEm:         new Date(m.utcDate),
+        fase:          FASE_MAP[m.stage] ?? m.stage,
+        grupoFase:     m.group    ?? null,
+        rodada:        m.matchday ?? null,
+        golsCasa:      null,
+        golsVisitante: null,
+        status:        'agendado',
+        inicioEm:      new Date(m.utcDate),
       }
     })
 
