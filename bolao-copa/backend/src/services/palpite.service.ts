@@ -21,9 +21,9 @@ function validarJogo(jogo: {
         throw new Error('TIMES_NAO_DEFINIDOS')
     }
 
-    const diffHoras = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60 * 60)
+    const diffHoras = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60)
 
-    if (diffHoras <= 2) {
+    if (diffHoras <= 15) {
         throw new Error('FORA_DO_PRAZO')
     }
 
