@@ -23,7 +23,7 @@ function validarJogo(jogo: {
 
     const diffHoras = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60)
 
-    if (diffHoras <= 15) {
+    if (diffHoras >= 15) {
         throw new Error('FORA_DO_PRAZO')
     }
 
