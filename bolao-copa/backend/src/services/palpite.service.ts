@@ -20,12 +20,11 @@ function validarJogo(jogo: {
     if (!jogo.timeCasaId || !jogo.timeVisitanteId) {
         throw new Error('TIMES_NAO_DEFINIDOS')
     }
+const diffHoras = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60 * 60)
 
-    const diffHoras = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60)
-
-    if (diffHoras <= 15) {
-        throw new Error('FORA_DO_PRAZO')
-    }
+if (diffHoras <= 15) {
+    throw new Error('FORA_DO_PRAZO')
+}
 
     if (jogo.fase === 'grupos' && Date.now() > PRAZO_FASE_GRUPOS.getTime()) {
         throw new Error('FORA_DO_PRAZO')
