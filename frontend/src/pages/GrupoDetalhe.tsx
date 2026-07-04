@@ -170,7 +170,7 @@ function podeApostar(jogo: any) {
   const inicioJogo = new Date(jogo.inicioEm).getTime()
 
 
- const faltamMaisDeDuasHoras = inicioJogo - agora > 15 * 60 * 1000
+ const faltamMaisDeDuasHoras = inicioJogo - agora > 7 * 60 * 1000
 
 if (!faltamMaisDeDuasHoras) {
   return false
