@@ -169,13 +169,11 @@ function podeApostar(jogo: any) {
   const agora = Date.now()
   const inicioJogo = new Date(jogo.inicioEm).getTime()
 
-
-const faltamMaisDeDuasHoras = inicioJogo - agora > 3 * 60 * 60 * 1000;
+const faltamMaisDeDuasHoras = inicioJogo - agora > 10 * 24 * 60 * 60 * 1000;
 
 if (!faltamMaisDeDuasHoras) {
-  return false;
+return false;
 }
-  
   if (jogo.fase === 'grupos') {
     return agora < PRAZO_FASE_GRUPOS.getTime()
   }
