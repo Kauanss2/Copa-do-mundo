@@ -168,8 +168,8 @@ function AbaPalpites({ grupoId, edicaoId }: { grupoId: string; edicaoId: string 
 function podeApostar(jogo: any) {
   const agora = Date.now()
   const inicioJogo = new Date(jogo.inicioEm).getTime()
-
-const faltamMaisDeDuasHoras = inicioJogo - agora > 1 * 24 * 60 * 60 * 1000;
+  
+const faltamMaisDeDuasHoras = inicioJogo - agora > 4 * 60 * 60 * 1000;
 
 if (!faltamMaisDeDuasHoras) {
   return false;
