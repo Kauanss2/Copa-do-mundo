@@ -23,7 +23,7 @@ function validarJogo(jogo: {
     
 const diffMinutos = (jogo.inicioEm.getTime() - Date.now()) / (1000 * 60);
 
-if (diffMinutos <= 2  * 60) {
+if (diffMinutos <= 15) {
     throw new Error('FORA_DO_PRAZO');
 }
     if (jogo.fase === 'grupos' && Date.now() > PRAZO_FASE_GRUPOS.getTime()) {
